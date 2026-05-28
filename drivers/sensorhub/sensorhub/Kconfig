@@ -15,4 +15,3 @@ config SHUB_AP_STATUS_CMD
 config SHUB_SPU
 	tristate "Sensor hub spu firmware download"
 	default n
-
