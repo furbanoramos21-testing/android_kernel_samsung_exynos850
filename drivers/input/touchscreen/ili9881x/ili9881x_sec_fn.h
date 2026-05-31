@@ -33,48 +33,79 @@
  * TOTAL CUMULATIVE LIABILITY TO ANY PARTY SHALL NOT EXCEED ONE HUNDRED U.S.
  * DOLLARS.
  */
+#ifndef __ILI9881X_SEC_FN_H
+#define __ILI9881X_SEC_FN_H
 
-#ifndef _SYNAPTICS_TCM_H_
-#define _SYNAPTICS_TCM_H_
+#include <linux/vmalloc.h>
+#include <linux/uaccess.h>
+#include <linux/spu-verify.h>
+#include "ili9881x.h"
+#define TEST_MODE_MIN_MAX		false
+#define TEST_MODE_ALL_NODE		true
+#define CMD_RESULT_WORD_LEN		10
+#define SENSITIVITY_POINT_CNT	9
+#define TEST_RESULT_PASS 0
+#define TEST_RESULT_FAIL 1
+#define USER_STR_BUFF		PAGE_SIZE
 
-#define I2C_MODULE_NAME "synaptics_tcm_i2c"
-#define SPI_MODULE_NAME "synaptics_tcm_spi"
+#define TSP_PATH_EXTERNAL_FW		"/sdcard/Firmware/TSP/tsp.hex"
+#define TSP_PATH_EXTERNAL_FW_SIGNED	"/sdcard/Firmware/TSP/tsp_signed.hex"
 
-struct syna_tcm_board_data {
-	bool x_flip;
-	bool y_flip;
-	bool swap_axes;
-	int irq_gpio;
-	int irq_on_state;
-	int cs_gpio;
-	int power_gpio;
-	int power_on_state;
-	int reset_gpio;
-	int reset_on_state;
-	int tpio_reset_gpio;
-	unsigned int spi_mode;
-	unsigned int power_delay_ms;
-	unsigned int reset_delay_ms;
-	unsigned int reset_active_ms;
-	unsigned int byte_delay_us;
-	unsigned int block_delay_us;
-	unsigned int ubl_i2c_addr;
-	unsigned int ubl_max_freq;
-	unsigned int ubl_byte_delay_us;
-	unsigned long irq_flags;
-	const char *pwr_reg_name;
-	const char *bus_reg_name;
-	const char *fw_name;
-	const char *regulator_lcd_vdd;
-	const char *regulator_lcd_reset;
-	const char *regulator_lcd_bl;
-	struct pinctrl *pinctrl;
-	u32	area_indicator;
-	u32	area_navigation;
-	u32	area_edge;
-	bool enable_settings_aot;
-	bool support_ear_detect;
-	bool prox_lp_scan_enabled;
+/* factory test mode */
+struct sec_factory_test_mode {
+	u8 type;
+	short min;
+	short max;
+	bool allnode;
 };
 
-#endif
+enum FW_SIGN {
+	NORMAL = 0,
+	SIGNING = 1,
+};
+
+enum PROX_LP_SCAN {
+	PORX_LP_SCAN_OFF = 0,
+	PORX_LP_SCAN_ON = 1,
+};
+
+enum DER_DETECT {
+	EAR_DETECT_DISABLE =  0,
+	EAR_DETECT_NORMAL_MODE =  1,
+	EAR_DETECT_INSENSITIVE_MODE = 3,
+};
+
+enum INCELL_POWER {
+	INCELL_POWER_DISABLE = 0,
+	INCELL_POWER_ENABLE = 1,
+};
+
+enum DEAD_ZONE {
+	DEAD_ZONE_DISABLE = 3,
+	DEAD_ZONE_ENABLE = 7,
+};
+
+enum SIP_MODE {
+	SIP_MODE_DISABLE = 0,
+	SIP_MODE_ENABLE = 1,
+};
+
+enum GAME_MODE {
+	GAME_MODE_DISABLE = 0,
+	GAME_MODE_ENABLE = 1,
+};
+
+enum {
+	BUILT_IN = 0,
+	UMS,
+	BL,
+	FFU,
+};
+
+int ili_sec_fn_init(void);
+void ili_sec_fn_remove(void);
+int test_sram(struct sec_cmd_data *sec);
+int ilitek_node_mp_test_read(struct sec_cmd_data *sec, char *log_path, int lcm_state);
+void sec_factory_print_frame(u32 *buf);
+int debug_mode_onoff(bool enabled);
+#endif /* __ILI9881X_SEC_FN_H */
