@@ -1,5 +1,5 @@
 /*
- * battery_logger.h
+ * sec_battery_log.h
  * Samsung Mobile Charger Header
  *
  * Copyright (C) 2012 Samsung Electronics, Inc.
@@ -16,12 +16,21 @@
  *
  */
 
-#ifndef __BATTERY_LOGGER_H
-#define __BATTERY_LOGGER_H __FILE__
+#ifndef __SEC_BATTERY_SBM_H
+#define __SEC_BATTERY_SBM_H __FILE__
 
-extern void store_battery_log(const char *fmt, ...);
-extern int register_batterylog_proc(void);
-extern void unregister_batterylog_proc(void);
-extern unsigned int lpcharge;
+enum sec_battery_sbm_data_type {
+	SBM_DATA_NONE = 0,
+	SBM_DATA_COMMON_INFO,
+	SBM_DATA_SET_CHARGE,
+	SBM_DATA_FULL_1ST,
+	SBM_DATA_FULL_2ND,
+	SBM_DATA_TEMP,
+	SBM_DATA_FG_VEMPTY,
+	SBM_DATA_FG_FULL_LOG,
+	SBM_DATA_MAX,
+};
 
-#endif /* __BATTERY_LOGGER_H */
+#define is_sbm_data_type(data_type) \
+	(SBM_DATA_NONE < data_type && data_type < SBM_DATA_MAX)
+#endif /* __SEC_BATTERY_SBM_H */
