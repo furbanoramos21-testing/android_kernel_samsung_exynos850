@@ -2076,7 +2076,7 @@ static int panel_ioctl_dsim_probe(struct v4l2_subdev *sd, void *arg)
 	struct panel_device *panel = container_of(sd, struct panel_device, sd);
 
 	panel_info("PANEL:INFO:%s:PANEL_IOC_DSIM_PROBE\n", __func__);
-	if (param == NULL) {
+	if (param == NULL || *param >= MAX_DSIM_CNT_FOR_PANEL) {
 		panel_err("PANEL:ERR:%s:invalid arg\n", __func__);
 		return -EINVAL;
 	}
@@ -2101,7 +2101,7 @@ static int panel_ioctl_dsim_ops(struct v4l2_subdev *sd)
 
 	panel_info("PANEL:INFO:%s:PANEL_IOC_MIPI_OPS\n", __func__);
 	mipi_ops = (struct mipi_drv_ops *)v4l2_get_subdev_hostdata(sd);
-	if (mipi_ops == NULL || *param >= MAX_DSIM_CNT_FOR_PANEL) {
+	if (mipi_ops == NULL) {
 		panel_err("PANEL:ERR:%s:mipi_ops is null\n", __func__);
 		return -EINVAL;
 	}
@@ -3442,7 +3442,7 @@ static int panel_drv_probe(struct platform_device *pdev)
 	panel_drv_init_work(panel);
 
 	panel->fb_notif.notifier_call = panel_fb_notifier;
-	ret = fb_register_notifier(&panel->fb_notif);
+	ret = fb_register_client(&panel->fb_notif);
 	if (ret) {
 		panel_err("PANEL:ERR:%s:failed to register fb notifier callback\n", __func__);
 		goto probe_err;
