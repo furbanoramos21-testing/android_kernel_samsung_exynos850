@@ -16,7 +16,7 @@
 #ifndef __SHUB_PANEL_H_
 #define __SHUB_PANEL_H_
 
-#define UB_ID_FILE_PATH "/efs/FactoryApp/ubid2"
+#define UID_FILE_PATH "/efs/FactoryApp/ubid"
 #define SDC			0
 #define BOE			1
 #define CSOT		2
@@ -33,12 +33,11 @@
 
 void init_shub_panel(void);
 void remove_shub_panel(void);
-void sync_panel_state(void);
 
 void init_shub_panel_callback(void);
 void remove_shub_panel_callback(void);
 
-bool is_panel_ubid_changed(void);
-int save_panel_ubid(void);
+bool is_lcd_changed(void);
+int save_panel_lcd_type(void);
 int get_panel_lcd_type(void);
 #endif

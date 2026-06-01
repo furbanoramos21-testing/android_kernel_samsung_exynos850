@@ -64,10 +64,9 @@ int proximity_open_calibration_stk3afx(void)
 
 void set_proximity_state_stk3afx(struct proximity_data *data)
 {
-	if (is_panel_ubid_changed())
-		return;
 	set_proximity_setting_mode();
-	set_proximity_calibration();
+	if (!is_lcd_changed())
+		set_proximity_calibration();
 }
 
 struct proximity_chipset_funcs prox_stk3afx_funcs = {

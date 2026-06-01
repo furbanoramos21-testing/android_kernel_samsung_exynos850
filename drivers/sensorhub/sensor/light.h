@@ -21,26 +21,20 @@
 
 #define LIGHT_COEF_SIZE 7
 
-#ifdef CONFIG_SHUB_TEST_FOR_ONLY_UML
-#define LIGHT_CALIBRATION_FILE_PATH "calibration_data.txt"
-#else
 #define LIGHT_CALIBRATION_FILE_PATH "/efs/FactoryApp/light_cal_data"
-#endif
-
 #define PANEL_TYPE_FILE_PATH "sys/class/lcd/panel/lcd_type"
 #define LIGHT_DEBIG_EVENT_SIZE_4BYTE_VERSION	2000
-#define LIGHT_CAL_CH0_SIZE_4BYTE_VERSION		3000
 
 struct light_event {
 	u32 lux;	/* lux, cct, raw_lux : fix 4byte */
 	s32 cct;
 	u32 raw_lux;
-	s32 r;		/* r, g, b, w, a_time, a_gain : 2byte or 4byte */
-	s32 g;		/* LIGHT_DEBIG_EVENT_SIZE_4BYTE_VERSION : 4byte, others : 2byte */
-	s32 b;
-	s32 w;
-	s32 a_time;
-	s32 a_gain;
+	u32 r;		/* r, g, b, w, a_time, a_gain : 2byte or 4byte */
+	u32 g;		/* LIGHT_DEBIG_EVENT_SIZE_4BYTE_VERSION : 4byte, others : 2byte */
+	u32 b;
+	u32 w;
+	u32 a_time;
+	u32 a_gain;
 	u32 brightness;
 } __attribute__((__packed__));
 
@@ -58,13 +52,7 @@ struct light_cct_event {
 } __attribute__((__packed__));
 
 struct light_cal_data {
-	u8 result;
-	u32 max;
-	u32 lux;
-} __attribute__((__packed__));
-
-struct light_cal_data_legacy {
-	u8 result;
+	u8 cal;
 	u16 max;
 	u32 lux;
 } __attribute__((__packed__));
@@ -85,7 +73,7 @@ struct light_data {
 	struct light_cal_data cal_data;
 };
 
-void set_light_ddi_support(uint32_t system_feature);
+void set_light_ddi_support(uint32_t ddi_support);
 
 
 /* light sub command */
@@ -96,11 +84,11 @@ void set_light_ddi_support(uint32_t system_feature);
 #define LIGHT_SUBCMD_BRIGHTNESS_HYSTERESIS		134
 #define LIGHT_SUBCMD_HBM_FINGERPRINT			135
 #define LIGHT_SUBCMD_PANEL_TYPE					136
-// reserved subcmd from sensorhub				137
-// reserved subcmd from sensorhub				138
-#define LIGHT_SUBCMD_PANEL_INFORMATION			139
-#define LIGHT_SUBCMD_UB_CONNECTED				140
-#define LIGHT_SUBCMD_SCREEN_MODE_INFORMATION	141
-struct sensor_chipset_init_funcs *get_light_stk_common_function_pointer(char *name);
+
+#define LIGHT_SUBCMD_PANEL_INFORMATION			137
+#define LIGHT_SUBCMD_UB_DISCONNECTED			138
+#define LIGHT_SUBCMD_SCREEN_MODE_INFORMATION	139
+
+struct sensor_chipset_init_funcs *get_light_stk33512_function_pointer(char *name);
 
 #endif /* __SHUB_LIGHT_H_ */
