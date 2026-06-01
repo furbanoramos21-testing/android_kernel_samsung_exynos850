@@ -882,10 +882,10 @@ static struct common_panel_info *panel_detect(struct panel_device *panel)
 {
 	u8 id[3];
 	u32 panel_id;
-	int ret = 0;
+//	int ret = 0;
 	struct common_panel_info *info;
 	struct panel_info *panel_data;
-	bool detect = true;
+//	bool detect = true;
 
 	if (panel == NULL) {
 		panel_err("%s, panel is null\n", __func__);
@@ -894,11 +894,18 @@ static struct common_panel_info *panel_detect(struct panel_device *panel)
 	panel_data = &panel->panel_data;
 
 	memset(id, 0, sizeof(id));
+
+#if 0
 	ret = read_panel_id(panel, id);
 	if (unlikely(ret < 0)) {
 		panel_err("%s, failed to read id(ret %d)\n", __func__, ret);
 		detect = false;
 	}
+#else
+	id[0] = (boot_panel_id & 0xFF0000) >> 16;
+	id[1] = (boot_panel_id & 0x00FF00) >> 8;
+	id[2] = (boot_panel_id & 0x0000FF) >> 0;
+#endif
 
 	panel_id = (id[0] << 16) | (id[1] << 8) | id[2];
 	memcpy(panel_data->id, id, sizeof(id));
