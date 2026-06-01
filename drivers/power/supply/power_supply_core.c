@@ -145,13 +145,8 @@ static void power_supply_deferred_register_work(struct work_struct *work)
 
 	power_supply_changed(psy);
 
-	if (psy->dev.parent) {
-		while (!mutex_trylock(&psy->dev.parent->mutex)) {
-			if (psy->removing)
-				return;
-			msleep(10);
-		}
-	}
+	if (psy->dev.parent)
+		mutex_unlock(&psy->dev.parent->mutex);
 }
 
 #ifdef CONFIG_OF
