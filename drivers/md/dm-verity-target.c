@@ -497,7 +497,6 @@ static int verity_verify_io(struct dm_verity_io *io)
 		sector_t cur_block = io->block + b;
 		struct ahash_request *req = verity_io_hash_req(v, io);
 
-		/* verify data block if bio->bi_status != BLK_STS_OK */
 		if (v->validated_blocks && bio->bi_status == BLK_STS_OK &&
 		    likely(test_bit(cur_block, v->validated_blocks))) {
 			verity_bv_skip_block(v, io, &io->iter);
@@ -545,16 +544,14 @@ static int verity_verify_io(struct dm_verity_io *io)
 			if (v->validated_blocks)
 				set_bit(cur_block, v->validated_blocks);
 			continue;
-		}
-		else if (verity_fec_decode(v, io, DM_VERITY_BLOCK_TYPE_DATA,
+		} else if (verity_fec_decode(v, io, DM_VERITY_BLOCK_TYPE_DATA,
 					   cur_block, NULL, &start) == 0) {
 #ifdef SEC_HEX_DEBUG
 			add_fec_correct_blks();
 			add_fc_blks_entry(cur_block,v->data_dev->name);
 #endif
 			continue;
-		}
-		else {
+		} else {
 			if (bio->bi_status) {
 				/*
 				 * Error correction failed; Just return error
@@ -613,10 +610,10 @@ static void verity_end_io(struct bio *bio)
 {
 	struct dm_verity_io *io = bio->bi_private;
 
-	/* SEC: Do not verify RAHEAD bio if status is not OK */
 	if (bio->bi_status &&
-	    (!verity_fec_is_enabled(io->v) || (bio->bi_opf & REQ_RAHEAD) ||
-	     verity_is_system_shutting_down())) {
+	    (!verity_fec_is_enabled(io->v) ||
+	     verity_is_system_shutting_down() ||
+	     (bio->bi_opf & REQ_RAHEAD))) {
 		verity_finish_io(io, bio->bi_status);
 		return;
 	}
@@ -1272,6 +1269,7 @@ bad:
 
 static struct target_type verity_target = {
 	.name		= "verity",
+	.features	= DM_TARGET_IMMUTABLE,
 	.version	= {1, 4, 0},
 	.module		= THIS_MODULE,
 	.ctr		= verity_ctr,
