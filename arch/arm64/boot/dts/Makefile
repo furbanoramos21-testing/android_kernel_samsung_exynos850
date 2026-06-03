@@ -13,8 +13,10 @@ dtb-y += exynos/exynos3830.dtb
 dtbo-y += exynos/exynos3830-universal3830_r02.dtbo
 
 # Samsung Galaxy A12s
-dtbo-y += samsung/a12s/a12s_eur_open_w00_r00.dtbo
-dtbo-y += samsung/a12s/a12s_eur_open_w00_r01.dtbo
+dtbo-$(CONFIG_MACH_SAMSUNG_A12S) += samsung/a12s/a12s_eur_open_w00_r00.dtbo samsung/a12s/a12s_eur_open_w00_r01.dtbo
+
+# Samsung Galaxy M12
+dtbo-$(CONFIG_MACH_SAMSUNG_M12) += samsung/m12/m12_eur_open_w00_r00.dtbo samsung/m12/m12_eur_open_w00_r01.dtbo
 
 targets += dtbs
 DTB_LIST  := $(dtb-y) $(dtbo-y)
