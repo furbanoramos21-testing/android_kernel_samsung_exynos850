@@ -1,0 +1,28 @@
+menu "Samsung S5E3830 Platform"
+
+if SOC_EXYNOS3830
+
+choice
+	prompt "Samsung E3830 device"
+	default MACH_SAMSUNG_DUMMY
+
+config MACH_SAMSUNG_DUMMY
+	bool "Dummy device"
+	help
+	  A stub configuration that does not enable support for anything.
+
+config MACH_SAMSUNG_A12S
+	bool "Galaxy A12 Nacho"
+	help
+	  Enable support for Galaxy A12s
+	
+config MACH_SAMSUNG_M12
+	bool "Galaxy M12"
+	help
+	  Enable support for Galaxy M12
+
+endchoice
+
+endif
+
+endmenu
