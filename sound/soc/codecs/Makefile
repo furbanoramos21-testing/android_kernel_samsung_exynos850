@@ -550,6 +550,7 @@ obj-$(CONFIG_SND_SOC_SIMPLE_AMPLIFIER)	+= snd-soc-simple-amplifier.o
 obj-$(CONFIG_SND_SOC_TPA6130A2)	+= snd-soc-tpa6130a2.o
 #for AWINIC AW882XX Smart PA 
 obj-$(CONFIG_SND_SMARTPA_AW882XX) += aw882xx/aw882xx.o aw882xx/aw_monitor.o aw882xx/aw_init.o aw882xx/aw_dsp.o aw882xx/aw_device.o aw882xx/aw_calib.o aw882xx/aw_bin_parse.o
+obj-$(CONFIG_SND_SMARTPA_AW8896) += aw8896.o
 obj-$(CONFIG_SND_SOC_FS18XX) += snd-soc-fsm.o
 
 # DBMDx
