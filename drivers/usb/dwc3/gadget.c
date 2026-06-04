@@ -2001,13 +2001,41 @@ static void dwc3_gadget_disable_irq(struct dwc3 *dwc)
 
 static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 {
-	u32			reg;
-	u32			timeout = 1000;
-	int			retries = 1000;
-	int			ret = 0;
+	u32 reg;
+	u32 timeout = 1000;
+	u32 saved_config = 0;
+	int retries = 1000;
+	int ret = 0;
 
 	if (pm_runtime_suspended(dwc->dev))
 		return 0;
+
+	/*
+	 * When operating in USB 2.0 speeds (HS/FS), ensure that
+	 * GUSB2PHYCFG.ENBLSLPM and GUSB2PHYCFG.SUSPHY are cleared before starting
+	 * or stopping the controller. This resolves timeout issues that occur
+	 * during frequent role switches between host and device modes.
+	 *
+	 * Save and clear these settings, then restore them after completing the
+	 * controller start or stop sequence.
+	 *
+	 * This solution was discovered through experimentation as it is not
+	 * mentioned in the dwc3 programming guide. It has been tested on an
+	 * Exynos platforms.
+	 */
+	reg = dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0));
+	if (reg & DWC3_GUSB2PHYCFG_SUSPHY) {
+		saved_config |= DWC3_GUSB2PHYCFG_SUSPHY;
+		reg &= ~DWC3_GUSB2PHYCFG_SUSPHY;
+	}
+
+	if (reg & DWC3_GUSB2PHYCFG_ENBLSLPM) {
+		saved_config |= DWC3_GUSB2PHYCFG_ENBLSLPM;
+		reg &= ~DWC3_GUSB2PHYCFG_ENBLSLPM;
+	}
+
+	if (saved_config)
+		dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0), reg);
 
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
 	if (is_on) {
@@ -2079,7 +2107,8 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 				do {
 					reg = dwc3_readl(dwc->regs, DWC3_DCTL);
 					if (!(reg & DWC3_DCTL_CSFTRST)) {
-						dev_info(dwc->dev,
+						dev_info(
+							dwc->dev,
 							"gadget run/stop DCTL softreset, DCTL : 0x%x\n",
 							reg);
 						goto good;
@@ -2088,27 +2117,40 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 
 				} while (--retries);
 
+				/* Restore config before returning on failure */
+				if (saved_config) {
+					reg = dwc3_readl(dwc->regs,
+							 DWC3_GUSB2PHYCFG(0));
+					reg |= saved_config;
+					dwc3_writel(dwc->regs,
+						    DWC3_GUSB2PHYCFG(0), reg);
+				}
 				return -ETIMEDOUT;
 			}
 
 			/* Do nothing in DCTL stop timeout */
 			dev_err(dwc->dev,
-				"gadget DCTL stop timeout, DSTS: 0x%x\n",
-				reg);
+				"gadget DCTL stop timeout, DSTS: 0x%x\n", reg);
 			goto good;
 		}
 		udelay(1);
 	} while (1);
 good:
+	/* Restore config before successful exit */
+	if (saved_config) {
+		reg = dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0));
+		reg |= saved_config;
+		dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0), reg);
+	}
 	return ret;
 }
 
 static int dwc3_gadget_run_stop_vbus(struct dwc3 *dwc, int is_on, int suspend)
 {
-	u32			reg;
-	u32			timeout = 1000;
-	int			retries = 1000;
-	int			ret = 0;
+	u32 reg;
+	u32 timeout = 1000;
+	int retries = 1000;
+	int ret = 0;
 
 	if (pm_runtime_suspended(dwc->dev))
 		return 0;
@@ -2183,7 +2225,8 @@ static int dwc3_gadget_run_stop_vbus(struct dwc3 *dwc, int is_on, int suspend)
 				do {
 					reg = dwc3_readl(dwc->regs, DWC3_DCTL);
 					if (!(reg & DWC3_DCTL_CSFTRST)) {
-						dev_info(dwc->dev,
+						dev_info(
+							dwc->dev,
 							"gadget run/stop DCTL softreset, DCTL : 0x%x\n",
 							reg);
 						goto good;
@@ -2197,8 +2240,7 @@ static int dwc3_gadget_run_stop_vbus(struct dwc3 *dwc, int is_on, int suspend)
 
 			/* Do nothing in DCTL stop timeout */
 			dev_err(dwc->dev,
-			"gadget DCTL stop timeout, DSTS: 0x%x\n",
-			reg);
+				"gadget DCTL stop timeout, DSTS: 0x%x\n", reg);
 			dwc3_soft_reset(dwc);
 			goto good;
 		}
@@ -2220,7 +2262,7 @@ static int dwc3_gadget_vbus_session(struct usb_gadget *g, int is_active)
 	is_active = !!is_active;
 
 	pr_info("usb: %s: is_active = %d, softconnect = %d, vbus_session = %d\n",
-			__func__, is_active, dwc->softconnect, dwc->vbus_session);
+		__func__, is_active, dwc->softconnect, dwc->vbus_session);
 
 	spin_lock_irqsave(&dwc->lock, flags);
 
@@ -2247,11 +2289,14 @@ static int dwc3_gadget_vbus_session(struct usb_gadget *g, int is_active)
 				ret = dwc3_gadget_run_stop_vbus(dwc, 1, false);
 #ifdef CONFIG_USB_NOTIFY_PROC_LOG
 			if (ret == 0)
-				store_usblog_notify(NOTIFY_USBSTATE,
-							(void *)"USB_STATE=VBUS:EN:SUCCESS", NULL);
+				store_usblog_notify(
+					NOTIFY_USBSTATE,
+					(void *)"USB_STATE=VBUS:EN:SUCCESS",
+					NULL);
 			else
-				store_usblog_notify(NOTIFY_USBSTATE,
-							(void *)"USB_STATE=VBUS:EN:FAIL", NULL);
+				store_usblog_notify(
+					NOTIFY_USBSTATE,
+					(void *)"USB_STATE=VBUS:EN:FAIL", NULL);
 #endif
 		} else {
 #ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
@@ -2266,15 +2311,20 @@ static int dwc3_gadget_vbus_session(struct usb_gadget *g, int is_active)
 			ret = dwc3_gadget_run_stop_vbus(dwc, 0, false);
 #ifdef CONFIG_USB_NOTIFY_PROC_LOG
 			if (ret == 0)
-				store_usblog_notify(NOTIFY_USBSTATE,
-							(void *)"USB_STATE=VBUS:DIS:SUCCESS", NULL);
+				store_usblog_notify(
+					NOTIFY_USBSTATE,
+					(void *)"USB_STATE=VBUS:DIS:SUCCESS",
+					NULL);
 			else
-				store_usblog_notify(NOTIFY_USBSTATE,
-							(void *)"USB_STATE=VBUS:DIS:FAIL", NULL);
+				store_usblog_notify(
+					NOTIFY_USBSTATE,
+					(void *)"USB_STATE=VBUS:DIS:FAIL",
+					NULL);
 #endif
 #ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
 			dwc3_disconnect_gadget(dwc);
-			printk("usb: %s : link state = %d\n", __func__, dwc3_gadget_get_link_state(dwc));
+			printk("usb: %s : link state = %d\n", __func__,
+			       dwc3_gadget_get_link_state(dwc));
 #endif
 		}
 	}
@@ -3106,6 +3156,15 @@ static void dwc3_gadget_endpoint_transfer_in_progress(struct dwc3_ep *dep,
 static void dwc3_gadget_endpoint_transfer_not_ready(struct dwc3_ep *dep,
 		const struct dwc3_event_depevt *event)
 {
+	/*
+	 * During a device-initiated disconnect, a late xferNotReady event can
+	 * be generated after the End Transfer command resets the event filter,
+	 * but before the controller is halted. Ignore it to prevent a new
+	 * transfer from starting.
+	 */
+	if (!dep->dwc->connected)
+		return;
+
 	dwc3_gadget_endpoint_frame_from_event(dep, event);
 	__dwc3_gadget_start_isoc(dep);
 }
@@ -3971,6 +4030,12 @@ static irqreturn_t dwc3_check_event_buf(struct dwc3_event_buffer *evt)
 	count &= DWC3_GEVNTCOUNT_MASK;
 	if (!count)
 		return IRQ_NONE;
+
+	if (count > evt->length) {
+		dev_err_ratelimited(dwc->dev, "invalid count(%u) > evt->length(%u)\n",
+			count, evt->length);
+		return IRQ_NONE;
+	}
 
 	evt->count = count;
 	evt->flags |= DWC3_EVENT_PENDING;
