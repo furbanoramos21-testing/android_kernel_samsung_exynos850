@@ -559,7 +559,7 @@ static int __panel_seq_dim_flash_res_init(struct panel_device *panel)
 static int __panel_seq_init(struct panel_device *panel)
 {
 	int ret = 0;
-	int retry = 100;
+	int retry = 20;
 	s64 time_diff;
 	ktime_t timestamp = ktime_get();
 	struct panel_bl_device *panel_bl = &panel->panel_bl;
