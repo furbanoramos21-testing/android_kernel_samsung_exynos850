@@ -452,11 +452,14 @@ int __set_panel_power(struct panel_device *panel, int power)
 	if (power == PANEL_POWER_ON) {
 		run_list(panel->dev, "panel_power_enable");
 
-		if (get_regulator_use_count(NULL, "gpio_lcd_bl_en") >= 2) {
+		if ((get_regulator_use_count(NULL, "gpio_lcd_bl_en") >= 2) && boot_blic_type != 1) {
 			panel_info("%s PANEL_I2C_INIT_SEQ SKIP\n", __func__);
 		} else {
 			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_INIT_SEQ);
 			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_DUMP_SEQ);
+
+			if (boot_blic_type == 1)
+				usleep_range(20000, 25000);
 		}
 
 	} else {
