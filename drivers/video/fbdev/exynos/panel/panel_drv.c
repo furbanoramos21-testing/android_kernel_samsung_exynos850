@@ -422,7 +422,7 @@ static int panel_blic_regulator_notifier_register(struct notifier_block *n)
 		return -EINVAL;
 	}
 
-	if (consumers && boot_blic_type == 1) {
+	if (consumers) {
 		regulator_register_notifier(consumers->consumer, n);
 		regulator_bulk_free(1, consumers);
 		kfree(consumers);
@@ -3469,8 +3469,10 @@ static int panel_drv_probe(struct platform_device *pdev)
 	}
 #endif
 #ifdef CONFIG_EXYNOS_DECON_LCD_A12S_BLIC_DUAL
-	panel->blic_regulator_noti.notifier_call = panel_blic_regulator_notifier_callback;
-	panel_blic_regulator_notifier_register(&panel->blic_regulator_noti);
+	if (boot_blic_type == 1) {
+		panel->blic_regulator_noti.notifier_call = panel_blic_regulator_notifier_callback;
+		panel_blic_regulator_notifier_register(&panel->blic_regulator_noti);
+	}
 #endif
 	panel_register_isr(panel);
 probe_err:
