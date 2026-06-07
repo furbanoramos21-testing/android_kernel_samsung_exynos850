@@ -395,21 +395,15 @@ static inline int panel_regulator_set_short_detection(struct panel_device *panel
 static int panel_blic_regulator_notifier_callback(struct notifier_block *self,
 			unsigned long event, void *unused)
 {
-	struct panel_device *panel;
+	struct panel_device *panel = container_of(self, struct panel_device, blic_regulator_noti);
 
-	if (boot_blic_type != 1)
-		return 0;
-
-	panel = container_of(self, struct panel_device, blic_regulator_noti);
-
-	switch (event) {
-	case REGULATOR_EVENT_PRE_DISABLE:
+	if (event == REGULATOR_EVENT_PRE_DISABLE) {
 		panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_EXIT_SEQ);
 		panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_DUMP_SEQ);
 		usleep_range(3000, 3100);
-		break;
-	default:
-		return NOTIFY_DONE;
+	} else if (event == REGULATOR_EVENT_ENABLE) {
+		panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_INIT_SEQ);
+		panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_DUMP_SEQ);
 	}
 
 	panel_info("PANEL:INFO:%s: %s\n", __func__,
@@ -423,15 +417,12 @@ static int panel_blic_regulator_notifier_register(struct notifier_block *n)
 	struct regulator_bulk_data *consumers =
 		get_regulator_with_name(panel_regulator_names[PANEL_REGULATOR_BLIC]);
 
-	if (boot_blic_type != 1)
-		return 0;
-
 	if (!n) {
 		panel_err("PANEL:ERR:%s:notifier null.\n", __func__);
 		return -EINVAL;
 	}
 
-	if (consumers) {
+	if (consumers && boot_blic_type == 1) {
 		regulator_register_notifier(consumers->consumer, n);
 		regulator_bulk_free(1, consumers);
 		kfree(consumers);
@@ -449,37 +440,42 @@ static int panel_blic_regulator_notifier_register(struct notifier_block *n)
 
 int __set_panel_power(struct panel_device *panel, int power)
 {
+	bool regulator_in_use = (get_regulator_use_count(NULL, "gpio_lcd_bl_en") >= 2);
+
 	if (power == PANEL_POWER_ON) {
 		run_list(panel->dev, "panel_power_enable");
 
-		if (get_regulator_use_count(NULL, "gpio_lcd_bl_en") >= 2) {
+#ifdef CONFIG_EXYNOS_DECON_LCD_A12S_BLIC_DUAL
+		if (boot_blic_type != 1 && regulator_in_use) {
 			panel_info("%s PANEL_I2C_INIT_SEQ SKIP\n", __func__);
 		} else {
 			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_INIT_SEQ);
 			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_DUMP_SEQ);
 		}
-
+#else
+		if (regulator_in_use) {
+			panel_info("%s PANEL_I2C_INIT_SEQ SKIP\n", __func__);
+		} else {
+			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_INIT_SEQ);
+			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_DUMP_SEQ);
+		}
+#endif
 	} else {
 		run_list(panel->dev, "panel_reset_disable");
 
 #ifdef CONFIG_EXYNOS_DECON_LCD_A12S_BLIC_DUAL
-		if (boot_blic_type != 1) {
-			if (get_regulator_use_count(NULL, "gpio_lcd_bl_en") >= 2) {
-				panel_info("%s PANEL_I2C_EXIT_SEQ SKIP\n", __func__);
-			} else {
-				panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_EXIT_SEQ);
-				panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_DUMP_SEQ);
-			}
+		if (boot_blic_type != 1 && regulator_in_use) {
+			panel_info("%s PANEL_I2C_EXIT_SEQ SKIP\n", __func__);
+		} else {
+			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_EXIT_SEQ);
+			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_DUMP_SEQ);
 		}
 #else
-		if (get_regulator_use_count(NULL, "gpio_lcd_bl_en") >= 2)
+		if (regulator_in_use)
 			panel_info("%s PANEL_I2C_EXIT_SEQ SKIP\n", __func__);
 		else
 			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_EXIT_SEQ);
-
-		panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_DUMP_SEQ);
 #endif
-
 		run_list(panel->dev, "panel_power_disable");
 	}
 
