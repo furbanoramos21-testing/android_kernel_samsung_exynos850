@@ -3470,11 +3470,7 @@ static int panel_drv_probe(struct platform_device *pdev)
 #endif
 #ifdef CONFIG_EXYNOS_DECON_LCD_A12S_BLIC_DUAL
 	panel->blic_regulator_noti.notifier_call = panel_blic_regulator_notifier_callback;
-	ret = panel_blic_regulator_notifier_register(&panel->blic_regulator_noti);
-	if (ret) {
-		panel_err("PANEL:ERR:%s:failed to register blic regulator notifier callback\n", __func__);
-		goto probe_err;
-	}
+	panel_blic_regulator_notifier_register(&panel->blic_regulator_noti);
 #endif
 	panel_register_isr(panel);
 probe_err:
