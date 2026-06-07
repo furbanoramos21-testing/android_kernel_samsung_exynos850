@@ -446,11 +446,13 @@ int __set_panel_power(struct panel_device *panel, int power)
 		run_list(panel->dev, "panel_power_enable");
 
 #ifdef CONFIG_EXYNOS_DECON_LCD_A12S_BLIC_DUAL
-		if (boot_blic_type != 1 && regulator_in_use) {
-			panel_info("%s PANEL_I2C_INIT_SEQ SKIP\n", __func__);
-		} else {
-			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_INIT_SEQ);
-			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_DUMP_SEQ);
+		if (boot_blic_type != 1) {
+			if (regulator_in_use) {
+				panel_info("%s PANEL_I2C_INIT_SEQ SKIP\n", __func__);
+			} else {
+				panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_INIT_SEQ);
+				panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_DUMP_SEQ);
+			}
 		}
 #else
 		if (regulator_in_use) {
@@ -464,11 +466,13 @@ int __set_panel_power(struct panel_device *panel, int power)
 		run_list(panel->dev, "panel_reset_disable");
 
 #ifdef CONFIG_EXYNOS_DECON_LCD_A12S_BLIC_DUAL
-		if (boot_blic_type != 1 && regulator_in_use) {
-			panel_info("%s PANEL_I2C_EXIT_SEQ SKIP\n", __func__);
-		} else {
-			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_EXIT_SEQ);
-			panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_DUMP_SEQ);
+		if (boot_blic_type != 1) {
+			if (regulator_in_use) {
+				panel_info("%s PANEL_I2C_EXIT_SEQ SKIP\n", __func__);
+			} else {
+				panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_EXIT_SEQ);
+				panel_do_seqtbl_by_index_nolock(panel, PANEL_I2C_DUMP_SEQ);
+			}
 		}
 #else
 		if (regulator_in_use)
